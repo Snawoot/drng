@@ -7,6 +7,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/Snawoot/drng"
 )
 
 const (
@@ -53,7 +55,7 @@ var (
 		"https://api.drand.sh",
 		"https://drand.cloudflare.com",
 	}
-	chainHash = byteSliceArg(must[[]byte](hex.DecodeString("8990e7a9aaed2ffed73dbd7092123d6f289930540d7651336225dc172e51b2ce")))
+	chainHash = byteSliceArg(drng.Must[[]byte](hex.DecodeString("8990e7a9aaed2ffed73dbd7092123d6f289930540d7651336225dc172e51b2ce")))
 )
 
 func init() {

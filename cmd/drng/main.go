@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -12,46 +13,57 @@ const (
 	ProgName = "drng"
 )
 
-var urls = []string{
-	"https://api.drand.sh",
-	"https://drand.cloudflare.com",
+type urlList []string
+
+func (l *urlList) String() string {
+	if l == nil {
+		return ""
+	}
+	return strings.Join(*l, " ")
+}
+
+func (l *urlList) Set(arg string) error {
+	elems := strings.FieldsFunc(arg, func(c rune) bool {
+		return c == ' '
+	})
+	*l = elems
+	return nil
+}
+
+type byteSliceArg []byte
+
+func (s *byteSliceArg) String() string {
+	return hex.EncodeToString(*s)
+}
+
+func (s *byteSliceArg) Set(arg string) error {
+	b, err := hex.DecodeString(arg)
+	if err != nil {
+		return err
+	}
+	*s = b
+	return nil
 }
 
 var (
 	version = "undefined"
 
 	timeout = flag.Duration("timeout", 10*time.Second, "network operation timeout")
+	urls    = urlList{
+		"https://api.drand.sh",
+		"https://drand.cloudflare.com",
+	}
+	chainHash = byteSliceArg(must[[]byte](hex.DecodeString("8990e7a9aaed2ffed73dbd7092123d6f289930540d7651336225dc172e51b2ce")))
 )
 
-var chainHash, _ = hex.DecodeString("8990e7a9aaed2ffed73dbd7092123d6f289930540d7651336225dc172e51b2ce")
-
-// func main() {
-// 	c, err := client.New(
-// 		client.From(http.ForURLs(urls, chainHash)...),
-// 		client.WithChainHash(chainHash),
-// 	)
-// 	if err != nil {
-// 		log.Fatalf("can't initialize drand client: %v", err)
-// 	}
-//
-// 	round := c.RoundAt(time.Now())
-// 	log.Printf("target round = %d", round)
-// 	res, err := c.Get(context.TODO(), round)
-// 	if err != nil {
-// 		log.Fatalf("request failed: %v", err)
-// 	}
-//
-// 	log.Printf("result: round: %d, randomness: %x, signature: %x", res.Round(), res.Randomness(), res.Signature())
-//
-// 	res, err = c.Get(context.TODO(), 0)
-// 	if err != nil {
-// 		log.Fatalf("request failed: %v", err)
-// 	}
-//
-// 	log.Printf("result: round: %d, randomness: %x, signature: %x", res.Round(), res.Randomness(), res.Signature())
-// }
+func init() {
+	flag.Var(&urls, "api-urls", "list of drand HTTP API URLs separated by space")
+	flag.Var(&chainHash, "chainhash", "trust root of chain and reference to chain parameters")
+}
 
 func cmdChoice(variants ...string) int {
+	fmt.Println(urls)
+	fmt.Printf("%x\n", chainHash)
 	return 0
 }
 
@@ -94,4 +106,11 @@ func run() int {
 
 func main() {
 	os.Exit(run())
+}
+
+func must[Value any](value Value, err error) Value {
+	if err != nil {
+		panic(err)
+	}
+	return value
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/hex"
 	"flag"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Snawoot/drng"
+	"pgregory.net/rand"
 )
 
 const (
@@ -47,6 +49,24 @@ func (s *byteSliceArg) Set(arg string) error {
 	return nil
 }
 
+type timeArg time.Time
+
+func (t *timeArg) String() string {
+	if t == nil {
+		return ""
+	}
+	return time.Time(*t).Format(time.RFC3339)
+}
+
+func (t *timeArg) Set(arg string) error {
+	parsed, err := time.Parse(time.RFC3339, arg)
+	if err != nil {
+		return err
+	}
+	*t = timeArg(parsed)
+	return nil
+}
+
 var (
 	version = "undefined"
 
@@ -56,16 +76,36 @@ var (
 		"https://drand.cloudflare.com",
 	}
 	chainHash = byteSliceArg(drng.Must[[]byte](hex.DecodeString("8990e7a9aaed2ffed73dbd7092123d6f289930540d7651336225dc172e51b2ce")))
+	round     = flag.Uint64("round", 0, "use specific round number")
+	roundAt   = timeArg{}
 )
 
 func init() {
 	flag.Var(&urls, "api-urls", "list of drand HTTP API URLs separated by space")
 	flag.Var(&chainHash, "chainhash", "trust root of chain and reference to chain parameters")
+	flag.Var(&roundAt, "round-at", "find round happened at time, specified in RFC3339 format (e.g. \"2006-01-02T15:04:05+07:00\")")
+}
+
+func makeRand() (*rand.Rand, *drng.ResultInfo, error) {
+	cfg := drng.Config{
+		Round:     *round,
+		RoundAt:   time.Time(roundAt),
+		URLs:      urls,
+		ChainHash: chainHash,
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
+	defer cancel()
+	return drng.New(ctx, &cfg)
 }
 
 func cmdChoice(variants ...string) int {
-	fmt.Println(urls)
-	fmt.Printf("%x\n", chainHash)
+	_, info, err := makeRand()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "initialization failed: %v", err)
+		return 1
+	}
+	fmt.Printf("Round: %d\n", info.Round)
+	fmt.Printf("Round time: %s\n", info.At.Format(time.RFC3339))
 	return 0
 }
 

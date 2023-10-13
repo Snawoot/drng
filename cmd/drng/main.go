@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -75,7 +76,7 @@ var (
 		"https://api.drand.sh",
 		"https://drand.cloudflare.com",
 	}
-	chainHash = byteSliceArg(drng.Must[[]byte](hex.DecodeString("8990e7a9aaed2ffed73dbd7092123d6f289930540d7651336225dc172e51b2ce")))
+	chainHash = byteSliceArg(drng.Must(hex.DecodeString("8990e7a9aaed2ffed73dbd7092123d6f289930540d7651336225dc172e51b2ce")))
 	round     = flag.Uint64("round", 0, "use specific round number")
 	roundAt   = timeArg{}
 )
@@ -99,13 +100,20 @@ func makeRand() (*rand.Rand, *drng.ResultInfo, error) {
 }
 
 func cmdChoice(variants ...string) int {
-	_, info, err := makeRand()
+	if len(variants) == 0 {
+		usage()
+		return 2
+	}
+	rng, info, err := makeRand()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "initialization failed: %v", err)
 		return 1
 	}
+	slices.Sort(variants)
+	res := variants[rng.Intn(len(variants))]
 	fmt.Printf("Round: %d\n", info.Round)
 	fmt.Printf("Round time: %s\n", info.At.Format(time.RFC3339))
+	fmt.Printf("Choice: %s\n", res)
 	return 0
 }
 

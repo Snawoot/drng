@@ -185,6 +185,56 @@ func cmdSample(args ...string) int {
 	return 0
 }
 
+func cmdFloat(args ...string) int {
+	if len(args) != 0 {
+		fmt.Fprintln(os.Stderr, "Unexpected number of arguments.")
+		usage()
+		return 2
+	}
+
+	rng, info, err := makeRand()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "initialization failed: %v", err)
+		return 1
+	}
+
+	fmt.Printf("Round: %d\n", info.Round)
+	fmt.Printf("Round time: %s\n", info.At.Format(time.RFC3339))
+	fmt.Printf("%f\n", rng.Float64())
+	return 0
+}
+
+func cmdInt(args ...string) int {
+	if len(args) != 1 {
+		fmt.Fprintln(os.Stderr, "Unexpected number of arguments.")
+		usage()
+		return 2
+	}
+
+	limit, err := strconv.ParseUint(args[0], 10, 64)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Can't parse limit: %v", err)
+		usage()
+		return 2
+	}
+	if limit == 0 {
+		fmt.Fprintln(os.Stderr, "Limit can't be zero!")
+		usage()
+		return 2
+	}
+
+	rng, info, err := makeRand()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "initialization failed: %v", err)
+		return 1
+	}
+
+	fmt.Printf("Round: %d\n", info.Round)
+	fmt.Printf("Round time: %s\n", info.At.Format(time.RFC3339))
+	fmt.Printf("%d\n", rng.Uint64n(limit))
+	return 0
+}
+
 func cmdVersion() int {
 	fmt.Println(version)
 	return 0
@@ -196,6 +246,8 @@ func usage() {
 	fmt.Fprintln(out)
 	fmt.Fprintf(out, "%s [OPTION]... choice VARIANT [VARIANT]...\n", ProgName)
 	fmt.Fprintf(out, "%s [OPTION]... sample SIZE [FILE]\n", ProgName)
+	fmt.Fprintf(out, "%s [OPTION]... float\n", ProgName)
+	fmt.Fprintf(out, "%s [OPTION]... int N\n", ProgName)
 	fmt.Fprintf(out, "%s version\n", ProgName)
 	fmt.Fprintln(out)
 	fmt.Fprintln(out, "Options:")
@@ -218,6 +270,10 @@ func run() int {
 		return cmdChoice(args[1:]...)
 	case "sample":
 		return cmdSample(args[1:]...)
+	case "float":
+		return cmdFloat(args[1:]...)
+	case "int":
+		return cmdInt(args[1:]...)
 	case "version":
 		return cmdVersion()
 	}

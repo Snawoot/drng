@@ -88,7 +88,7 @@ var (
 func init() {
 	flag.Var(&urls, "api-urls", "list of drand HTTP API URLs separated by space")
 	flag.Var(&chainHash, "chainhash", "trust root of chain and reference to chain parameters")
-	flag.Var(&roundAt, "round-at", "find round happened at time, specified in RFC3339 format (e.g. \"2006-01-02T15:04:05+07:00\")")
+	flag.Var(&roundAt, "round-at", "find round happened at `time`, specified in RFC3339 format (e.g. \"2006-01-02T15:04:05+07:00\")")
 }
 
 func makeRand() (*rand.Rand, *drng.ResultInfo, error) {

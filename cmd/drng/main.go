@@ -9,9 +9,11 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"slices"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/Snawoot/drng"
@@ -287,6 +289,25 @@ func cmdInt(args ...string) int {
 	return 0
 }
 
+func cmdStream(args ...string) int {
+	if len(args) != 0 {
+		fmt.Fprintln(os.Stderr, "Unexpected number of arguments.")
+		usage()
+		return 2
+	}
+
+	rng, info, err := makeRand()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "initialization failed: %v", err)
+		return 1
+	}
+
+	info.Print()
+	signal.Ignore(syscall.SIGPIPE)
+	_, _ = io.Copy(os.Stdout, rng)
+	return 0
+}
+
 func cmdVersion() int {
 	fmt.Println(version)
 	return 0
@@ -300,6 +321,7 @@ func usage() {
 	fmt.Fprintf(out, "%s [OPTION]... sample SIZE [FILE]\n", ProgName)
 	fmt.Fprintf(out, "%s [OPTION]... float\n", ProgName)
 	fmt.Fprintf(out, "%s [OPTION]... int N\n", ProgName)
+	fmt.Fprintf(out, "%s [OPTION]... stream\n", ProgName)
 	fmt.Fprintf(out, "%s version\n", ProgName)
 	fmt.Fprintln(out)
 	fmt.Fprintln(out, "Options:")
@@ -326,6 +348,8 @@ func run() int {
 		return cmdFloat(args[1:]...)
 	case "int":
 		return cmdInt(args[1:]...)
+	case "stream":
+		return cmdStream(args[1:]...)
 	case "version":
 		return cmdVersion()
 	}

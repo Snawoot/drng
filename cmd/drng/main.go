@@ -101,7 +101,7 @@ type resultInfo []struct {
 
 func (info resultInfo) Print() {
 	for _, pair := range info {
-		fmt.Printf("%s: %s\n", pair.key, pair.value)
+		fmt.Fprintf(os.Stderr, "%s: %s\n", pair.key, pair.value)
 	}
 }
 

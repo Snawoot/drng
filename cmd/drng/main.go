@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/hex"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -85,6 +86,7 @@ var (
 	roundAt   = timeArg{}
 	seed      = flag.String("seed", "", "override seed by string")
 	hexSeed   = byteSliceArg(nil)
+	hkdfInfo  = byteSliceArg(drng.DefaultHKDFInfo)
 )
 
 func init() {
@@ -92,6 +94,7 @@ func init() {
 	flag.Var(&chainHash, "chainhash", "trust root of chain and reference to chain parameters")
 	flag.Var(&roundAt, "round-at", "find round happened at `time`, specified in RFC3339 format (e.g. \"2006-01-02T15:04:05+07:00\")")
 	flag.Var(&hexSeed, "hex-seed", "override seed with byte array specified by hex-encoded string")
+	flag.Var(&hkdfInfo, "hkdf-info", "override default info `bytes` supplied to HKDF function")
 }
 
 type resultInfo []struct {
@@ -106,6 +109,26 @@ func (info resultInfo) Print() {
 }
 
 func makeRand() (*rand.Rand, resultInfo, error) {
+	if *seed != "" || hexSeed != nil {
+		if *seed != "" && hexSeed != nil {
+			return nil, nil, errors.New("seed and hex seed are mutually exclusive options")
+		}
+		if *seed != "" {
+			hexSeed = byteSliceArg(*seed)
+		}
+		rng, err := drng.FromSeed(hexSeed, hkdfInfo)
+		if err != nil {
+			return nil, nil, fmt.Errorf(
+				"RNG init failed: %w", err,
+			)
+		}
+		return rng, resultInfo{
+			{
+				key:   "Seed",
+				value: hex.EncodeToString(hexSeed),
+			},
+		}, nil
+	}
 	cfg := drng.Config{
 		Round:     *round,
 		RoundAt:   time.Time(roundAt),
@@ -116,16 +139,22 @@ func makeRand() (*rand.Rand, resultInfo, error) {
 	defer cancel()
 	rng, info, err := drng.New(ctx, &cfg)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf(
+			"RNG init failed: %w", err,
+		)
 	}
 	return rng, resultInfo{
 		{
-			key: "Round",
+			key:   "Round",
 			value: strconv.FormatUint(info.Round, 10),
 		},
 		{
-			key: "Round time",
+			key:   "Round time",
 			value: info.At.Format(time.RFC3339),
+		},
+		{
+			key:   "Seed",
+			value: hex.EncodeToString(info.Seed),
 		},
 	}, nil
 }

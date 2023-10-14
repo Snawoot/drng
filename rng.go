@@ -24,6 +24,7 @@ const (
 type ResultInfo struct {
 	Round uint64
 	At    time.Time
+	Seed  []byte
 }
 
 // New constructs RNG intialized by seed from drand beacon
@@ -68,6 +69,7 @@ func New(ctx context.Context, cfg *Config) (*rand.Rand, *ResultInfo, error) {
 	return rng, &ResultInfo{
 		Round: round,
 		At:    roundTime,
+		Seed:  drandResult.Randomness(),
 	}, nil
 
 }

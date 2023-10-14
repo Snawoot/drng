@@ -91,7 +91,18 @@ func init() {
 	flag.Var(&roundAt, "round-at", "find round happened at `time`, specified in RFC3339 format (e.g. \"2006-01-02T15:04:05+07:00\")")
 }
 
-func makeRand() (*rand.Rand, *drng.ResultInfo, error) {
+type resultInfo []struct {
+	key   string
+	value string
+}
+
+func (info resultInfo) Print() {
+	for _, pair := range info {
+		fmt.Printf("%s: %s\n", pair.key, pair.value)
+	}
+}
+
+func makeRand() (*rand.Rand, resultInfo, error) {
 	cfg := drng.Config{
 		Round:     *round,
 		RoundAt:   time.Time(roundAt),
@@ -100,7 +111,20 @@ func makeRand() (*rand.Rand, *drng.ResultInfo, error) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 	defer cancel()
-	return drng.New(ctx, &cfg)
+	rng, info, err := drng.New(ctx, &cfg)
+	if err != nil {
+		return nil, nil, err
+	}
+	return rng, resultInfo{
+		{
+			key: "Round",
+			value: strconv.FormatUint(info.Round, 10),
+		},
+		{
+			key: "Round time",
+			value: info.At.Format(time.RFC3339),
+		},
+	}, nil
 }
 
 func cmdChoice(variants ...string) int {
@@ -116,8 +140,7 @@ func cmdChoice(variants ...string) int {
 	}
 	slices.Sort(variants)
 	res := variants[rng.Intn(len(variants))]
-	fmt.Printf("Round: %d\n", info.Round)
-	fmt.Printf("Round time: %s\n", info.At.Format(time.RFC3339))
+	info.Print()
 	fmt.Println(res)
 	return 0
 }
@@ -173,8 +196,7 @@ func cmdSample(args ...string) int {
 		fmt.Fprintf(os.Stderr, "read error: %v\n", err)
 	}
 
-	fmt.Printf("Round: %d\n", info.Round)
-	fmt.Printf("Round time: %s\n", info.At.Format(time.RFC3339))
+	info.Print()
 	for _, line := range r.Items() {
 		if _, err := fmt.Fprintf(output, "%s\n", line); err != nil {
 			fmt.Fprintf(os.Stderr, "write error: %v\n", err)
@@ -198,8 +220,7 @@ func cmdFloat(args ...string) int {
 		return 1
 	}
 
-	fmt.Printf("Round: %d\n", info.Round)
-	fmt.Printf("Round time: %s\n", info.At.Format(time.RFC3339))
+	info.Print()
 	fmt.Printf("%f\n", rng.Float64())
 	return 0
 }
@@ -229,8 +250,7 @@ func cmdInt(args ...string) int {
 		return 1
 	}
 
-	fmt.Printf("Round: %d\n", info.Round)
-	fmt.Printf("Round time: %s\n", info.At.Format(time.RFC3339))
+	info.Print()
 	fmt.Printf("%d\n", rng.Uint64n(limit))
 	return 0
 }

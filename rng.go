@@ -20,11 +20,13 @@ const (
 	seedUintsSize   = 8
 )
 
+// ResultInfo contains additional information about seed of RNG
 type ResultInfo struct {
 	Round uint64
 	At    time.Time
 }
 
+// New constructs RNG intialized by seed from drand beacon
 func New(ctx context.Context, cfg *Config) (*rand.Rand, *ResultInfo, error) {
 	if cfg == nil {
 		cfg = new(Config)
@@ -55,20 +57,10 @@ func New(ctx context.Context, cfg *Config) (*rand.Rand, *ResultInfo, error) {
 		return nil, nil, fmt.Errorf("drand request failed: %w", err)
 	}
 
-	kdf := hkdf.New(sha256.New, drandResult.Randomness(), nil, cfg.HKDFInfo)
-
-	var seedBytes [seedUintsNeeded * seedUintsSize]byte
-	if _, err := io.ReadFull(kdf, seedBytes[:]); err != nil {
-		return nil, nil, fmt.Errorf("KDF stream read failed: %w", err)
+	rng, err := FromSeed(drandResult.Randomness(), cfg.HKDFInfo)
+	if err != nil {
+		return nil, nil, fmt.Errorf("RNG construction from seed failed: %w", err)
 	}
-
-	var seedUints [seedUintsNeeded]uint64
-
-	for i := 0; i < seedUintsNeeded; i++ {
-		seedUints[i] = binary.BigEndian.Uint64(seedBytes[i*seedUintsSize : (i+1)*seedUintsSize])
-	}
-
-	rng := rand.New(seedUints[:]...)
 
 	round = drandResult.Round()
 	roundTime := time.Unix(chain.TimeOfRound(chainInfo.Period, chainInfo.GenesisTime, round), 0)
@@ -78,6 +70,24 @@ func New(ctx context.Context, cfg *Config) (*rand.Rand, *ResultInfo, error) {
 		At:    roundTime,
 	}, nil
 
+}
+
+// FromSeed constructs RNG from seed specified by raw bytes
+func FromSeed(seed, info []byte) (*rand.Rand, error) {
+	kdf := hkdf.New(sha256.New, seed, nil, info)
+
+	var seedBytes [seedUintsNeeded * seedUintsSize]byte
+	if _, err := io.ReadFull(kdf, seedBytes[:]); err != nil {
+		return nil, fmt.Errorf("KDF stream read failed: %w", err)
+	}
+
+	var seedUints [seedUintsNeeded]uint64
+
+	for i := 0; i < seedUintsNeeded; i++ {
+		seedUints[i] = binary.BigEndian.Uint64(seedBytes[i*seedUintsSize : (i+1)*seedUintsSize])
+	}
+
+	return rand.New(seedUints[:]...), nil
 }
 
 func forURLs(ctx context.Context, urls []string, chainHash []byte) []client.Client {

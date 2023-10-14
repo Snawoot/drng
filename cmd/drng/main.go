@@ -83,12 +83,15 @@ var (
 	chainHash = byteSliceArg(drng.Must(hex.DecodeString("8990e7a9aaed2ffed73dbd7092123d6f289930540d7651336225dc172e51b2ce")))
 	round     = flag.Uint64("round", 0, "use specific round number")
 	roundAt   = timeArg{}
+	seed      = flag.String("seed", "", "override seed by string")
+	hexSeed   = byteSliceArg(nil)
 )
 
 func init() {
 	flag.Var(&urls, "api-urls", "list of drand HTTP API URLs separated by space")
 	flag.Var(&chainHash, "chainhash", "trust root of chain and reference to chain parameters")
 	flag.Var(&roundAt, "round-at", "find round happened at `time`, specified in RFC3339 format (e.g. \"2006-01-02T15:04:05+07:00\")")
+	flag.Var(&hexSeed, "hex-seed", "override seed with byte array specified by hex-encoded string")
 }
 
 type resultInfo []struct {

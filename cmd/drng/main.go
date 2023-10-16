@@ -78,12 +78,9 @@ func (t *timeArg) Set(arg string) error {
 var (
 	version = "undefined"
 
-	timeout = flag.Duration("timeout", 10*time.Second, "network operation timeout")
-	urls    = urlList{
-		"https://api.drand.sh",
-		"https://drand.cloudflare.com",
-	}
-	chainHash = byteSliceArg(drng.Must(hex.DecodeString("8990e7a9aaed2ffed73dbd7092123d6f289930540d7651336225dc172e51b2ce")))
+	timeout   = flag.Duration("timeout", 10*time.Second, "network operation timeout")
+	urls      = urlList(drng.DefaultURLs)
+	chainHash = byteSliceArg(drng.DefaultChainHash)
 	round     = flag.Uint64("round", 0, "use specific round number")
 	roundAt   = timeArg{}
 	seed      = flag.String("seed", "", "override seed by string")

@@ -5,7 +5,7 @@ go 1.21.1
 require (
 	github.com/Snawoot/terse v1.0.1
 	github.com/drand/drand v1.5.8
-	golang.org/x/crypto v0.15.0
+	golang.org/x/crypto v0.17.0
 	pgregory.net/rand v1.0.2
 )
 
@@ -29,7 +29,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
 	golang.org/x/net v0.18.0 // indirect
-	golang.org/x/sys v0.14.0 // indirect
+	golang.org/x/sys v0.15.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231106174013-bbf56f31fb17 // indirect
 	google.golang.org/grpc v1.59.0 // indirect
